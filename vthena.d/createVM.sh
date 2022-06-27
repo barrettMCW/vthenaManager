@@ -76,7 +76,7 @@ askForDisks() {
       while true; do
         echo "What format would you like: qcow2 , qed , raw , vdi , vhd , and vmdk"
         read
-        [[ $REPLY =~ ^qcow2$|^qed$|^raw$|^cdi$|^vhd$|`^vmdk$ ]] && \
+        [[ $REPLY =~ ^qcow2$|^qed$|^raw$|^cdi$|^vhd$|^vmdk$ ]] && \
             format=$REPLY && break
       done
 
