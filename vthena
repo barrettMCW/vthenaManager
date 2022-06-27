@@ -1,0 +1,65 @@
+#!/bin/bash
+set -eo pipefail 
+trap cleanup SIGINT SIGTERM ERR EXIT
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+source $script_dir/vthena.d/.env
+# This allows easy use of my QEMU VM utils
+# simple help message
+help() {
+  echo "valid commands are test & com
+  use COMMAND --help or COMMAND -h for usage"
+  exit 1
+}
+
+# very cheap error logging
+die() { 
+  echo "$*" >&2 
+  exit 2
+}
+
+# safely exits in the middle of the script
+cleanup() {
+  # don't let them quit the quit cleaner
+  trap - SIGINT SIGTERM ERR EXIT
+  # remove instance marker
+  echo "Leaving"
+  exit
+}
+
+# returns all parameters, minus the given command
+removeCommand() {
+    args=$(
+    for param in ${@:2}; do 
+        [[ $param != $1 ]] && echo $param 
+    done
+    )
+    echo $args
+    return 0
+}
+
+##MAIN
+# if they ran this without args, they don't know what this does
+[[ $# < 1 ]] && help
+
+# VTHENA_DIR is mandatory
+[[ -z $VTHENA_DIR ]] && die "VTHENA_DIR is a mandatory variable, define it"
+[[ ! -d $VTHENA_DIR ]] && (mkdir -p $VTHENA_DIR || die "couldn't make directory:$VTHENA_DIR")
+
+# check each parameter
+for param in $@; do
+  # compare it to command list
+  case $param in
+    # if it starts with a hyphen it's an option, ignore it
+    -* ) continue ;;
+    # otherwise if it's a known command, run the appropriate script
+    start ) $script_dir/vthena.d/startVM.sh $(removeCommand start $@) ;;
+    create ) $script_dir/vthena.d/createVM.sh $(removeCommand create $@) ;;
+    set ) $script_dir/vthena.d/setMasterImg.sh $(removeCommand set $@) ;;
+    clone ) $script_dir/vthena.d/cloneVM.sh $(removeCommand clone $@) ;;
+    list ) $script_dir/vthena.d/util/listVMs.sh ;;
+    # else print help message
+    ? ) help ;;
+  esac
+done
+# Good Job!
+exit 0
