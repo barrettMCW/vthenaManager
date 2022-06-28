@@ -106,10 +106,75 @@ getPort() {
   return 0
 }
 
+# deals with the web of options that are qemu displays
+handleDisplayType(){
+  # if we can just slap it on the end of a string, send it.
+  [[ $VM_DISPLAY_TYPE =~ ^curses$|^none$|^gtk$|^sdl$ ]] && \
+    echo "-display $VM_DISPLAY_TYPE" && return 0 
+
+  # nographic option
+  [[ $VM_DISPLAY_TYPE =~ ^nographic$ ]] && \
+    echo "-nographic"
+
+  # SPICE AND VNC
+  # find a port if they didn't give us one
+  [[ -z $VM_PORT ]] && VM_PORT=$(getPort)
+
+  # wrap a userprovided password
+  [[ -n $VM_PASS ]] && VM_SECURITY=password=$VM_PASS
+  # disable security if no password is defined
+  [[ -z $VM_SECURITY ]] && VM_SECURITY=disable-ticketing
+
+  # localhost will do the trick for most
+  [[ -z $VM_ADDR ]] && VM_ADDR=127.0.0.1
+
+  # if they chose vnc, send it
+  [[ $VM_DISPLAY_TYPE =~ ^vnc$ ]] && \
+    echo "-display vnc=:$VM_PORT" && return 0
+
+  # they probably should have chose spice tho
+  [[ -z $VM_VGA ]] && $VM_VGA=qxl 
+  [[ $VM_DISPLAY_TYPE =~ ^spice$ ]] && \
+    echo "-spice port=$VM_PORT,addr=$VM_ADDR,$VM_SECURITY" && return 0
+
+  # you shouldn't be here!
+  die "We haven't heard of a display type: $VM_DISPLAY_TYPE. Try asking for help."
+}
+
+# formats args from getopts into qemu args
+wrapQemuArgs() {
+  # emulate host if cpu undefined
+  [[ -z $VM_CPU ]] && VM_CPU=host
+
+  # wrap a userprovided smp topology
+  [[ -n $VM_SMP_TOP ]] && VM_SMP="-smp $VM_SMP_TOP"
+
+  # wrap a userprovided memory cap
+  [[ -n $VM_MEM_CAP ]] && VM_MEM="-mem $VM_MEM_CAP"
+
+  # offload display for neatness
+  VM_DISPLAY=$(handleDisplayType)
+
+  # set video (when using spice default vga is set in handleDisplayType)
+  [[ -n $VM_VGA ]] && VM_VIDEO="-vga $VM_VGA"
+
+  # wrap a userprovided cdrom
+  [[ -n $VM_CDROM ]] && VM_OS="-cdrom $VM_CDROM"
+
+  # get disks for this vm (pass external disk directory here)
+  local disks=$(getDisks $VTHENA_DIR/$VM_NAME $VM_DISKS_EXTERNAL)
+  [[ -z $VM_DISKS ]] && VM_DISKS=$(formatDiskString $disks)
+
+  # get
+
+}
+
 ##MAIN
 main() {
   ### REFACTOR AS NO ROOT RUNS AND USE nc FOR IP SCANNING
   ### check for kvm group?
+  ### ownerless disks
+  ### refactor kvm call to make everything optional
   # for now we demand root, would like to figure out a rootless solution
   sudo echo "Starting VM" || die "unfortunately needs to be run as root"
 
@@ -119,31 +184,25 @@ main() {
   # make a _running directory if we haven't already
   [[ ! -d $script_dir/_running/ ]] && mkdir $script_dir/_running/
 
-  # marks that we started this vm
-  touch $script_dir/_running/$VM_NAME.init
-
   # set vm directory based on provided name and default vm directory
   cd $VTHENA_DIR/$VM_NAME || die "This vm does not exist! Try using create and giving an iso to create your base vm"
-  
-  # get disks for this vm
-  local disks=$(getDisks $VTHENA_DIR/$VM_NAME)
-  [[ -z $VM_DISKS ]] && VM_DISKS=$(formatDiskString $disks)
 
-  # Start vm with specs
+  # marks that we started this vm
+  touch $script_dir/_running/$VM_NAME.init
+  
+
+  # Start vm with specs#
   kvm -name $VM_NAME \
   -cpu $VM_CPU \
-  -smp $VM_SMP \
-  -m $VM_MEM \
-  $VM_OS \
-  -spice port=$VM_PORT,addr=$VM_ADDR,$VM_SECURITY \
-  $VM_DISKS
-  cleanup
+  $VM_SMP $VM_MEM $VM_DISPLAY $VM_VIDEO $VM_OS \
+  $VM_DISKS $VM_NET $VM_USB $VM_XTRA
+
   # Good Job!
-  exit 0
+  cleanup
 }
 
 # parse your options
-while getopts a:c:m:p:r:s:w:h-: OPT; do
+while getopts a:c:d:m:p:r:s:w:h-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -153,11 +212,15 @@ while getopts a:c:m:p:r:s:w:h-: OPT; do
   case "$OPT" in
     a | address )  needs_arg && VM_ADDR=$OPTARG ;;
     c | cpu )      needs_arg && VM_CPU=$OPTARG ;;
-    m | memory )   needs_arg && VM_MEM=$OPTARG ;;
+    d | display )  needs_arg && VM_DISPLAY_TYPE=$OPTARG ;;
+    e | extra )    needs_arg && VM_DISKS_EXTERNAL=$OPTARG ;;
+    m | memory )   needs_arg && VM_MEM_CAP=$OPTARG ;;
     p | port )     validatePort && VM_PORT=$OPTARG ;;
     r | cdrom )    needs_arg && VM_CDROM=$OPTARG ;;
-    s | smp )      needs_arg && VM_SMP=$OPTARG ;;
+    s | smp )      needs_arg && VM_SMP_TOP=$OPTARG ;;
+    v | vga )      needs_arg && VM_VGA=$OPTARG ;;
     w | password ) needs_arg && VM_PASS=$OPTARG ;;
+    x | extra )    needs_arg && VM_XTRA=$OPTARG ;;
     h | help )     help ;;
     ? )            exit 2 ;;  # bad short option (error reported via getopts)
     ?* )           die "Illegal option --$OPT" ;;  # bad long option
@@ -165,21 +228,12 @@ while getopts a:c:m:p:r:s:w:h-: OPT; do
 done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
-# if user provided name, use it
+# use name if provided
 [[ -n $1 ]] && VM_NAME=$1
 
+# wraps user given args into qemu command args
+wrapQemuArgs
 
-# find a port if they didn't give us one
-[[ -z $VM_PORT ]] && VM_PORT=$(getPort)
-
-# wrap a userprovided password
-[[ -n $VM_PASS ]] && VM_SECURITY=password=$VM_PASS
-
-# wrap a userprovided cdrom
-[[ -n $VM_CDROM ]] && VM_OS="-cdrom $VM_CDROM"
-
-# disable security if no password is defined
-[[ -z $VM_SECURITY ]] && VM_SECURITY=disable-ticketing
 
 # pass all the arguments to main
 main $@ 
