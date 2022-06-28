@@ -65,7 +65,7 @@ getDiskFormat() {
 getDisks() {
   # add each img file to an array
   local i=1
-  local disks[]
+  local disks=()
   for img in $1/*.img; do 
     [[ -f $img ]] && disks[$i]=$img
     ((i++))
@@ -79,7 +79,7 @@ getDisks() {
 # formats given path of .img files into qemu disk string
 formatDiskString() {
   local i=1
-  local qemuString[]
+  local qemuString=()
   for str in $@; do
     # get file format
     local format=$(getDiskFormat $str)
@@ -176,7 +176,7 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 [[ -n $VM_PASS ]] && VM_SECURITY=password=$VM_PASS
 
 # wrap a userprovided cdrom
-[[ -n $VM_CDROM ]] && VM_OS=-cdrom=$VM_CDROM
+[[ -n $VM_CDROM ]] && VM_OS="-cdrom $VM_CDROM"
 
 # disable security if no password is defined
 [[ -z $VM_SECURITY ]] && VM_SECURITY=disable-ticketing
