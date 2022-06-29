@@ -22,7 +22,7 @@ needs_arg() {
 cleanup() {
   # don't let them quit the quit cleaner
   trap - SIGINT SIGTERM ERR EXIT
-    rm -rf $VTHENA_DIR/old_master/
+  rm -rf $VTHENA_DIR/old_master/
   exit 
 }
 
