@@ -187,17 +187,17 @@ main() {
   
 
   # Start vm with specs#
-  kvm -name $VM_NAME \
+  echo "kvm -name $VM_NAME \
   -cpu $VM_CPU \
   $VM_SMP $VM_MEM $VM_DISPLAY $VM_VIDEO $VM_OS \
-  $VM_DISKS $VM_NET $VM_USB $VM_XTRA
+  $VM_DISKS $VM_NET $VM_USB $VM_XTRA"
 
   # Good Job!
   cleanup
 }
 
 # parse your options
-while getopts a:c:d:m:p:r:s:w:h-: OPT; do
+while getopts a:c:d:e:m:p:r:s:v:w:x:h-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -208,7 +208,7 @@ while getopts a:c:d:m:p:r:s:w:h-: OPT; do
     a | address )  needs_arg && VM_ADDR=$OPTARG ;;
     c | cpu )      needs_arg && VM_CPU=$OPTARG ;;
     d | display )  needs_arg && VM_DISPLAY_TYPE=$OPTARG ;;
-    e | extra )    needs_arg && VM_DISKS_EXTERNAL=$OPTARG ;;
+    e | external ) needs_arg && VM_DISKS_EXTERNAL=$OPTARG ;;
     m | memory )   needs_arg && VM_MEM_CAP=$OPTARG ;;
     p | port )     validatePort && VM_PORT=$OPTARG ;;
     r | cdrom )    needs_arg && VM_CDROM=$OPTARG ;;
