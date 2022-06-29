@@ -132,13 +132,9 @@ handleDisplayType(){
   [[ $VM_DISPLAY_TYPE =~ ^vnc$ ]] && \
     echo "-display vnc=:$VM_PORT" && return 0
 
-  # they probably should have chose spice tho
-  [[ -z $VM_VGA ]] && $VM_VGA=qxl 
-  [[ $VM_DISPLAY_TYPE =~ ^spice$ ]] && \
-    echo "-spice port=$VM_PORT,addr=$VM_ADDR,$VM_SECURITY" && return 0
-
-  # you shouldn't be here!
-  die "We haven't heard of a display type: $VM_DISPLAY_TYPE. Try asking for help."
+  # spice will be our default for now
+  [[ -z $VM_VGA ]] && VM_VGA=qxl 
+  echo "-spice port=$VM_PORT,addr=$VM_ADDR,$VM_SECURITY" && return 0
 }
 
 # formats args from getopts into qemu args
@@ -165,8 +161,6 @@ wrapQemuArgs() {
   local disks=$(getDisks $VTHENA_DIR/$VM_NAME $VM_DISKS_EXTERNAL)
   [[ -z $VM_DISKS ]] && VM_DISKS=$(formatDiskString $disks)
 
-  # get
-
 }
 
 ##MAIN
@@ -175,6 +169,7 @@ main() {
   ### check for kvm group?
   ### ownerless disks
   ### refactor kvm call to make everything optional
+  ### QCOW2 overlay images
   # for now we demand root, would like to figure out a rootless solution
   sudo echo "Starting VM" || die "unfortunately needs to be run as root"
 

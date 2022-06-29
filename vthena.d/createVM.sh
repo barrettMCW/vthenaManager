@@ -67,6 +67,7 @@ askForDisks() {
       while true; do
         echo  "What name would you like? (no special characters) ex: boot -> boot1.img boot2.img... "
         read 
+        echo
         [[ $REPLY =~ ^[A-Za-z0-9]+$ ]] && \
             name=$REPLY && break
       done
@@ -76,6 +77,7 @@ askForDisks() {
       while true; do
         echo "What format would you like: qcow2 , qed , raw , vdi , vhd , and vmdk"
         read
+        echo
         [[ $REPLY =~ ^qcow2$|^qed$|^raw$|^cdi$|^vhd$|^vmdk$ ]] && \
             format=$REPLY && break
       done
@@ -85,6 +87,7 @@ askForDisks() {
       while true; do 
         echo "How big would you like your disks? ex: 1G, 1000M" 
         read
+        echo
         [[ $REPLY =~ ^[0-9]+[G,M]{1}$ ]] && \
           size=$REPLY && break
       done
@@ -94,17 +97,20 @@ askForDisks() {
       while true; do
         echo "How many of these disks? "
         read
+        echo
         [[ $REPLY =~ ^[1-9]{1}[0-9]*$ ]] && \
             qty=$REPLY && break
       done
 
       # ask if they're sure 
       read -p "Are you sure you want to create $qty disks, named $name, of $size, formatted in $format? Y/n"  -n 1 -r
+      echo
       # if yes, create disks, regardless, ask if they want to continue
       [[ $REPLY =~ ^[Yy]$ ]] && createDisks $name $format $size $qty
 
       # continue?
       read -p "Add more disks?" -n 1 -r
+      echo
       [[ $REPLY =~ ^[Yy]$ ]] || break #if n exit loop
     done
 }
