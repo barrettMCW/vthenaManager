@@ -3,7 +3,8 @@
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-source $script_dir/.env
+#fetch defaults
+[[ -f $script_dir/vthena.d/.env ]] && source $script_dir/vthena.d/.env
 # Starts a virtual machine based on provided name and specs with defaults happening to be exactly what I want
 ##FUNCTIONS
 # very cheap error logging
@@ -20,12 +21,13 @@ needs_arg() {
 }
 
 # demands an unused port on localhost
+### maybe move out of arg parser?
 validatePort() {
   # still needs arg
   needs_arg
   # if addr is going to be localhost
   [[ $VM_ADDR =~ ^127.0.0.1$|^0.0.0.0$ ]] && \
-    [[ $(sudo lsof -i:$OPTARG) ]] && \
+    [[ -n $(nc -w 1 localhost $OPTARG) ]] && \
       die "Specified port :$OPTARG is already bound!"
   return 0
 }
@@ -35,7 +37,7 @@ cleanup() {
   # don't let them quit the quit cleaner
   trap - SIGINT SIGTERM ERR EXIT
   # remove instance marker
-  rm -f $script_dir/_running/$VM_NAME.init
+  rm -f $VTHENA_DIR/$VM_NAME/.init
   exit
 }
 
@@ -54,11 +56,6 @@ Available options:
 -p, --param     Some param description
 "
   exit
-}
-
-# use qemu-img to find disk format, then return the val
-getDiskFormat() { 
-  qemu-img info $1 | awk '/file format:/{print $NF}' 
 }
 
 # finds disk images in a folder
@@ -82,7 +79,7 @@ formatDiskString() {
   local qemuString=()
   for str in $@; do
     # get file format
-    local format=$(getDiskFormat $str)
+    local format=$($script_dir/util/getDiskFormat.sh $str)
     local diskInd=$((i-1))
     # qemu complains when raw files aren't specified
     [[ $format == raw ]] && qemuString[$i]="-drive file=$str,index=$diskInd,media=disk,if=virtio,format=raw" || \
@@ -95,10 +92,11 @@ formatDiskString() {
 
 # returns open port
 getPort() {
-  # start at 15900
+  # start at 5901
+  [[ -z $VM_PORT_START ]] && VM_PORT_START=5901
   local posPort=$VM_PORT_START
   # while we get feedback from lsof, try the next port
-  while [[ -n $(sudo lsof -i:$posPort) ]]; do
+  while [[ -n $(nc -w 1 localhost $posPort) ]]; do
     ((posPort++))
   done
   # once lsof shuts up, "return" port
@@ -168,24 +166,17 @@ main() {
   ### REFACTOR AS NO ROOT RUNS AND USE nc FOR IP SCANNING
   ### check for kvm group?
   ### ownerless disks
-  ### refactor kvm call to make everything optional
+  ### refactor kvm call to make everything optional: Done?
   ### QCOW2 overlay images
-  # for now we demand root, would like to figure out a rootless solution
-  sudo echo "Starting VM" || die "unfortunately needs to be run as root"
-
-  # checks if this vm is already running
-  [[ -e $script_dir/_running/$VM_NAME.init ]] && die "This VM is already running! If you're sure it's not, remove it manually in _running/"
-
-  # make a _running directory if we haven't already
-  [[ ! -d $script_dir/_running/ ]] && mkdir $script_dir/_running/
-
   # set vm directory based on provided name and default vm directory
   cd $VTHENA_DIR/$VM_NAME || die "This vm does not exist! Try using create and giving an iso to create your base vm"
 
-  # marks that we started this vm
-  touch $script_dir/_running/$VM_NAME.init
-  
+  # checks if this vm is already running
+  [[ -e $VTHENA_DIR/$VM_NAME/.init ]] && die "This VM is already running! If you're sure it's not, remove it manually in _running/"
 
+  # marks that we started this vm
+  touch $VTHENA_DIR/$VM_NAME/.init
+  
   # Start vm with specs#
   echo "kvm -name $VM_NAME \
   -cpu $VM_CPU \

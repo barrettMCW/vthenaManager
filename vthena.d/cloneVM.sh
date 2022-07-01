@@ -2,7 +2,8 @@
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-source $script_dir/.env
+#fetch defaults
+[[ -f $script_dir/.env ]] && source $script_dir/.env
 # Clones a given vm
 ##FUNCTIONS
 # very cheap error logging
@@ -44,6 +45,9 @@ main() {
   # report
   echo "Cloning $1 as $2"
 
+  # check ff
+  [[ $($script_dir/utils/getDiskMeta.sh $VTHENA_DIR/$1/) ]]
+
   # copy files
   cp -r $VTHENA_DIR/$1 $VTHENA_DIR/$2
 
@@ -67,7 +71,7 @@ done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 # Check input params
-# if they gave 2 params
+# if they gave 2 params, they want to clone non-main
 if [[ $# == 2 ]]; then
   # if param does not exist, quit
   [[ $1 != $($script_dir/util/searchVM.sh $1) ]] && die "Couldn't find specified vm, check your vm directory"

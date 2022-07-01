@@ -2,7 +2,8 @@
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-source $script_dir/.env
+#fetch defaults
+[[ -f $script_dir/.env ]] && source $script_dir/.env
 # Clones a given vm
 ##FUNCTIONS
 # very cheap error logging
@@ -42,12 +43,12 @@ Available options:
 ##MAIN
 main() {
   # rename old master vm
-  [[ -d $VTHENA_DIR/_master/ ]] && \
-    mv $VTHENA_DIR/_master/ $VTHENA_DIR/old_master/ || echo "Setting master for the first time!"
+  ([[ -d $VTHENA_DIR/_master/ ]] && \
+    mv $VTHENA_DIR/_master/ $VTHENA_DIR/old_master/) || echo "Setting master for the first time!"
 
   # rename desired vm 
-  [[ -d $VTHENA_DIR/$1/ ]] && \
-    mv $VTHENA_DIR/$1/ $VTHENA_DIR/_master || die "We thought we saw your vm, but now it's not there! This is disasterous."
+  ([[ -d $VTHENA_DIR/$1/ ]] && \
+    mv $VTHENA_DIR/$1/ $VTHENA_DIR/_master) || die "We thought we saw your vm, but now it's not there! This is disasterous."
 
   # delete old master
   [[ -d $VTHENA_DIR/old_master/ ]] && \
