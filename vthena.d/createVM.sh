@@ -2,7 +2,8 @@
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-source $script_dir/.env
+#fetch defaults
+[[ -f $script_dir/.env ]] && source $script_dir/.env
 # Creates a vm with provided iso file
 ##FUNCTIONS
 # very cheap error logging
@@ -61,6 +62,7 @@ createDisks() {
 
 # interactive disk config creator
 askForDisks() {
+    echo "How would you like your disk(s)?"
     while true; do
       # what name would you like for your disks?
       local name

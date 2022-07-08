@@ -2,7 +2,8 @@
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-source $script_dir/.env
+#fetch defaults
+[[ -f $script_dir/.env ]] && source $script_dir/.env
 # Clones a given vm
 ##FUNCTIONS
 # very cheap error logging
@@ -41,21 +42,12 @@ Available options:
 
 ##MAIN
 main() {
-  # rename old master vm
-  [[ -d $VTHENA_DIR/_master/ ]] && \
-    mv $VTHENA_DIR/_master/ $VTHENA_DIR/old_master/ || echo "Setting master for the first time!"
-
-  # rename desired vm 
-  [[ -d $VTHENA_DIR/$1/ ]] && \
-    mv $VTHENA_DIR/$1/ $VTHENA_DIR/_master || die "We thought we saw your vm, but now it's not there! This is disasterous."
-
-  # delete old master
-  [[ -d $VTHENA_DIR/old_master/ ]] && \
-    rm -r $VTHENA_DIR/old_master/
-
+  # all this just for a move command smh
+  mv $VTHENA_DIR/$1 $VTHENA_DIR/$2
   #Good Job!
   return 0
 }
+
 # first parse your options
 while getopts h-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -73,11 +65,25 @@ done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 # check input quantity
-[[ $# < 1 ]] && die "Which vm did you want to make master?"
-[[ $# > 1 ]] && die "Woah now, just one param please."
+[[ $# < 1 ]] && die "What did you want? Look at help."
+[[ $# > 3 ]] && die "Woah too many params, don't use spaces in names and use help if you're lost"
+
+# if one param they want to rename _master, shift desired name and input _master
+if [[ $# == 2 ]]; then 
+  old=$1
+  new=$2
+else
+  old=_master
+  new=$1
+fi
 
 # check that vm exists
-[[ $($script_dir/util/searchVM.sh $1) != $1 ]] && die "VM not found. Check spelling and vm dir"
+[[ $($script_dir/util/searchVM.sh $old) != $old ]] && \
+  die "VM not found. Do you even have a master vm?"
 
-# pass all the arguments to main and send exit code
-main $@ && exit 0 || die "something went wrong in main" 
+# check that the new vm doesn't exist
+[[ $($script_dir/util/searchVM.sh $new) == $new ]] && \
+  die "You already used that name, try a different one"
+
+# pass all the arguments to main or die
+main $old $new && exit 0 || die "something went wrong in main" 

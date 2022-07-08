@@ -2,7 +2,8 @@
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-source $script_dir/.env
+#fetch defaults
+[[ -f $script_dir/.env ]] && source $script_dir/.env
 # Clones a given vm
 ##FUNCTIONS
 # very cheap error logging
@@ -43,10 +44,13 @@ Available options:
 main() {
   # report
   echo "Cloning $1 as $2"
-
-  # copy files
-  cp -r $VTHENA_DIR/$1 $VTHENA_DIR/$2
-
+  mkdir $VTHENA_DIR/$2
+  # very different behaviors for qcow2 vs others
+  for img in $VTHENA_DIR/$1/*.img; do
+    [[ $($script_dir/util/getDiskMeta.sh format $img) == qcow2 ]] && \
+      qemu-img create -f qcow2 -b $img -F qcow2 $VTHENA_DIR/$2/${img##*/} || \
+      cp $img $VTHENA_DIR/$2 
+  done
   #Good Job!
   return 0
 }
@@ -66,23 +70,26 @@ while getopts h-: OPT; do
 done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
-# Check input params
-# if they gave 2 params
-if [[ $# == 2 ]]; then
-  # if param does not exist, quit
-  [[ $1 != $($script_dir/util/searchVM.sh $1) ]] && die "Couldn't find specified vm, check your vm directory"
-elif [[ $# == 1 ]]; then
-  # if there is no dir named _master, then we don't know what they want from us
-  [[ _master != $($script_dir/util/searchVM.sh _master) ]] && die "No base vm provided and you haven't set a master copy"
-  # shift cloneName and make _master the clone base
-  $2=$1 && $1=_master
-else 
-  # else they used a wrong amount of params
-  help
+# check input quantity
+[[ $# < 1 ]] && die "What did you want? Look at help."
+[[ $# > 2 ]] && die "Woah too many params, don't use spaces in names and use help if you're lost"
+
+# if one param they want to rename _master, shift desired name and input _master
+if [[ $# == 2 ]]; then 
+  old=$1
+  new=$2
+else
+  old=_master
+  new=$1
 fi
 
-# if vm already exists quit
-[[ $createdVMs == *\ $2\ * ]] && die "VM already exists! Use a different name."
+# check that vm exists
+[[ $($script_dir/util/searchVM.sh $old) != $old ]] && \
+  die "VM not found. Check spelling and vm dir"
 
-# pass all the arguments to main and send exit code
-main $@ && exit 0 || die "Something went wrong in main" 
+# check that the new vm doesn't exist
+[[ $($script_dir/util/searchVM.sh $new) == $new ]] && \
+  die "You already used that name, try a different one"
+
+# pass all the arguments to main or die
+main $old $new && exit 0 || die "something went wrong in main" 

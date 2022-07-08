@@ -2,7 +2,6 @@
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-source $script_dir/.env
 #fetch defaults
 [[ -f $script_dir/.env ]] && source $script_dir/.env
 # Clones a given vm
@@ -43,9 +42,11 @@ Available options:
 
 ##MAIN
 main() {
+
   #Good Job!
   return 0
 }
+
 # first parse your options
 while getopts h-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -62,11 +63,15 @@ while getopts h-: OPT; do
 done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
-# 
+# check input quantity
+[[ $# < 1 ]] && die "What did you want? Look at help."
+[[ $# > 1 ]] && die "Woah too many params, don't use spaces in names and use help if you're lost"
 
-# check input vals 
-[[ $# < 1 ]] && \
+[[ $($script_dir/util/getDiskMeta.sh format $img) == qcow2 ]]
 
+# check that vm exists
+[[ $($script_dir/util/searchVM.sh $1) != $1 ]] && \
+  die "VM not found."
 
-# pass all the arguments to main and send exit code
+# pass all the arguments to main or die
 main $@ && exit 0 || die "something went wrong in main" 

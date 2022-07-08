@@ -2,7 +2,8 @@
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-source ${script_dir%/*}/.env # (look for .env 1 dir up )
+#fetch defaults
+[[ -f ${script_dir%/*}/.env ]] && source ${script_dir%/*}/.env # (look for .env 1 dir up )
 
 # safely exits in the middle of the script
 cleanup() {

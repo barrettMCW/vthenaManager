@@ -2,8 +2,9 @@
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-source $script_dir/vthena.d/.env
-# This allows easy use of my QEMU VM utils
+#fetch defaults
+[[ -f $script_dir/vthena.d/.env ]] && source $script_dir/vthena.d/.env
+# This wrapper allows easy use of my QEMU VM scripts
 # simple help message
 help() {
   echo "valid commands are test & com
@@ -41,9 +42,17 @@ removeCommand() {
 # if they ran this without args, they don't know what this does
 [[ $# < 1 ]] && help
 
+# demand non root so disks don't clog /root
+([[ $USER == root ]] || [[ $HOME == /root ]]) && \
+  die "Using this as root can seriously mess up your system depending on partitions. Switch users."
+
 # VTHENA_DIR is mandatory
-[[ -z $VTHENA_DIR ]] && die "VTHENA_DIR is a mandatory variable, define it"
+[[ -z $VTHENA_DIR ]] && export VTHENA_DIR=$HOME/vthena
 [[ ! -d $VTHENA_DIR ]] && (mkdir -p $VTHENA_DIR || die "couldn't make directory:$VTHENA_DIR")
+
+# KVM enjoyers only
+[[ -z $(id -nG "$USER" | grep kvm) ]] || #&& \
+  die "You need to be a member of the kvm group to use these utilities! Check that you are on Linux and are a part of the kvm group"  
 
 # check each parameter
 for param in $@; do
@@ -52,11 +61,11 @@ for param in $@; do
     # if it starts with a hyphen it's an option, ignore it
     -* ) continue ;;
     # otherwise if it's a known command, run the appropriate script
-    start ) $script_dir/vthena.d/startVM.sh $(removeCommand start $@) ;;
-    create ) $script_dir/vthena.d/createVM.sh $(removeCommand create $@) ;;
-    set ) $script_dir/vthena.d/setMasterImg.sh $(removeCommand set $@) ;;
-    clone ) $script_dir/vthena.d/cloneVM.sh $(removeCommand clone $@) ;;
-    list ) $script_dir/vthena.d/util/listVMs.sh ;;
+    start ) $script_dir/vthena.d/startVM.sh $(removeCommand start $@) && exit ;;
+    create ) $script_dir/vthena.d/createVM.sh $(removeCommand create $@) && exit ;;
+    set ) $script_dir/vthena.d/setMasterImg.sh $(removeCommand set $@) && exit ;;
+    clone ) $script_dir/vthena.d/cloneVM.sh $(removeCommand clone $@) && exit ;;
+    list ) $script_dir/vthena.d/util/listVMs.sh && exit ;;
     # else print help message
     ? ) help ;;
   esac
