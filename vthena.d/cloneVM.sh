@@ -47,8 +47,9 @@ main() {
   mkdir $VTHENA_DIR/$2
   # very different behaviors for qcow2 vs others
   for img in $VTHENA_DIR/$1/*.img; do
-    [[ $($script_dir/util/getDiskMeta.sh format $img) == qcow2 ]] && \
-      qemu-img create -f qcow2 -b $img -F qcow2 $VTHENA_DIR/$2/${img##*/} || \
+    echo $($script_dir/util/getDiskMeta.sh format $img)
+    [[ $($script_dir/util/getDiskMeta.sh format $img) =~ (qcow2)* ]] && \
+      echo "creating overlay" && qemu-img create -f qcow2 -b $img -F qcow2 $VTHENA_DIR/$2/${img##*/} || \
       cp $img $VTHENA_DIR/$2 
   done
   #Good Job!

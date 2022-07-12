@@ -65,6 +65,7 @@ for param in $@; do
     create ) $script_dir/vthena.d/createVM.sh $(removeCommand create $@) && exit ;;
     set ) $script_dir/vthena.d/setMasterImg.sh $(removeCommand set $@) && exit ;;
     clone ) $script_dir/vthena.d/cloneVM.sh $(removeCommand clone $@) && exit ;;
+    remove ) $script_dir/vthena.d/removeVM.sh $(removeCommand remove $@) && exit ;;
     list ) $script_dir/vthena.d/util/listVMs.sh && exit ;;
     # else print help message
     ? ) help ;;
