@@ -1,7 +1,9 @@
 Requires:  
-    linux os  
+    kvm kernel  
     qemu  
-    netcat (likely installed)  
+    likely installed:
+    awk
+    netcat   
 Usage:  
 vthena create [opts] image.iso  
     creates a master vm, and starts it. install desired programs and dependencies then exit  

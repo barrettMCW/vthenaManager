@@ -1,11 +1,14 @@
 #!/bin/bash
-###TODO: documentation, test real qemu run
+# Starts a virtual machine based on provided name and specs with defaults happening to be exactly what I want
+## TODO:
+## help isn't entirely forthcoming (display options)
+## external disks not implemented
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 #fetch defaults
 [[ -f $script_dir/vthena.d/.env ]] && source $script_dir/vthena.d/.env
-# Starts a virtual machine based on provided name and specs with defaults happening to be exactly what I want
+
 ##FUNCTIONS
 # very cheap error logging
 die() { 
@@ -21,7 +24,6 @@ needs_arg() {
 }
 
 # demands an unused port on localhost
-### maybe move out of arg parser?
 validatePort() {
   # still needs arg
   needs_arg
@@ -44,17 +46,22 @@ cleanup() {
 # prints a help message
 help() {
   echo "
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-f] -p param_value arg1 [arg2...]
-
-Script description here.
-
+Usage: vthena start [--address=val] [--cpu=val] [--display=val] [--external=val] [--memory=val] 
+[--port=val] [--cdrom=val] [--smp=val] [--vga=val] [--password=val] [--extra=val] vmName
+Start a QEMU-KVM with the provided options
 Available options:
-
--h, --help      Print this help and exit
--v, --verbose   Print script debug info
--f, --flag      Some flag description
--p, --param     Some param description
-"
+-h, --help      ex. -h;             Print this help and exit 
+-a, --address   ex. -a 127.0.0.1;   Address to host remote viewer (SPICE or VNC)
+-c, --cpu       ex. -c EPYC-v1;     Host CPU type, see qemu help for more 
+-d, --display   ex. -d nographic;   Display type to use, see qemu help for more
+-e, --external  ex. -e /path/;      External (ownerless) disks to use
+-m, --memory    ex. -m 8G;          Amount of ram to use 
+-p, --port      ex. -p 5900;        Port to host remote viewer (SPICE or VNC)
+-r, --cdrom     ex. -r linux.iso;   Path to cdrom (Usually iso to install an oS)
+-s, --smp       ex. -s 8;           cpu SMP topology for VM, see qemu for more
+-v, --vga       ex. -v virtio;      VGA adapter, see qemu for more
+-w, --password  ex. -w password;    Password for use in remote viewers (SPICE or VNC)
+-x, --extra     ex. -x '-boot c';   Any other qemu params can be put here, no formatting is done though"
   exit
 }
 
@@ -95,11 +102,11 @@ getPort() {
   # start at 5901
   [[ -z $VM_PORT_START ]] && VM_PORT_START=5901
   local posPort=$VM_PORT_START
-  # while we get feedback from lsof, try the next port
+  # while we get feedback from mc, try the next port
   while [[ -n $(nc -w 1 localhost $posPort) ]]; do
     ((posPort++))
   done
-  # once lsof shuts up, "return" port
+  # once mc shuts up, "return" port
   echo $posPort
   return 0
 }
@@ -163,11 +170,6 @@ wrapQemuArgs() {
 
 ##MAIN
 main() {
-  ### REFACTOR AS NO ROOT RUNS AND USE nc FOR IP SCANNING
-  ### check for kvm group?
-  ### ownerless disks
-  ### refactor kvm call to make everything optional: Done?
-  ### QCOW2 overlay images
   # set vm directory based on provided name and default vm directory
   cd $VTHENA_DIR/$VM_NAME || die "This vm does not exist! Try using create and giving an iso to create your base vm"
 

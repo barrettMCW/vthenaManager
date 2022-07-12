@@ -1,14 +1,30 @@
 #!/bin/bash
+# This wrapper allows easy use of my QEMU VM scripts
+###TODO:
+### external disks
+### qemu help message passthrough 
+### experiment script
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 #fetch defaults
 [[ -f $script_dir/vthena.d/.env ]] && source $script_dir/vthena.d/.env
-# This wrapper allows easy use of my QEMU VM scripts
-# simple help message
+
+# prints a help message
 help() {
-  echo "valid commands are test & com
-  use COMMAND --help or COMMAND -h for usage"
+  echo "
+Usage: vthena command
+Deletes VMs and rebases their children if necessary
+Available commands:
+help            ex: vthena help;                 Prints this message.
+clone           ex: vthena clone test;           Clones a vm.
+create, new     ex: vthena create linux.iso;     Creates _master vm.
+list, ls        ex: vthena ls;                   Lists all created vms (cool tree coming?).
+remove, rm      ex: vthena rm ubuntu test        Removes all provided vms.
+rename, name    ex: vthena name _master ubuntu;  Renames a given vm.
+start, up       ex: vthena start ubuntu;         Starts the given vm.
+"
+
   exit 1
 }
 
@@ -62,11 +78,12 @@ for param in $@; do
     -* ) continue ;;
     # otherwise if it's a known command, run the appropriate script
     start ) $script_dir/vthena.d/startVM.sh $(removeCommand start $@) && exit ;;
-    create ) $script_dir/vthena.d/createVM.sh $(removeCommand create $@) && exit ;;
-    set ) $script_dir/vthena.d/setMasterImg.sh $(removeCommand set $@) && exit ;;
+    create | new ) $script_dir/vthena.d/createVM.sh $(removeCommand create $@) && exit ;;
+    rename | name ) $script_dir/vthena.d/setMasterImg.sh $(removeCommand set $@) && exit ;;
     clone ) $script_dir/vthena.d/cloneVM.sh $(removeCommand clone $@) && exit ;;
-    remove ) $script_dir/vthena.d/removeVM.sh $(removeCommand remove $@) && exit ;;
-    list ) $script_dir/vthena.d/util/listVMs.sh && exit ;;
+    remove | rm) $script_dir/vthena.d/removeVM.sh $(removeCommand remove $@) && exit ;;
+    list | ls) $script_dir/vthena.d/util/listVMs.sh && exit ;;
+    help ) help ;;
     # else print help message
     ? ) help ;;
   esac

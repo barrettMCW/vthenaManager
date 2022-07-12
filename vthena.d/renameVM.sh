@@ -1,10 +1,10 @@
 #!/bin/bash
+# Renames a given vm
 set -eo pipefail 
-trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 #fetch defaults
 [[ -f $script_dir/.env ]] && source $script_dir/.env
-# Clones a given vm
+
 ##FUNCTIONS
 # very cheap error logging
 die() { 
@@ -19,24 +19,13 @@ needs_arg() {
   return 0
 }
 
-# safely exits in the middle of the script
-cleanup() {
-  # don't let them quit the quit cleaner
-  trap - SIGINT SIGTERM ERR EXIT
-
-  exit 
-}
-
 # prints a help message
 help() {
   echo "
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-f] -p param_value arg1 [arg2...]
-Script description here.
+Usage: vthena name [-h] (arg1=_master) arg2
+Renames a given vm.
 Available options:
--h, --help      Print this help and exit
--v, --verbose   Print script debug info
--f, --flag      Some flag description
--p, --param     Some param description"
+-h, --help      Print this help and exit"
   exit 1
 }
 
@@ -66,7 +55,7 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 # check input quantity
 [[ $# < 1 ]] && die "What did you want? Look at help."
-[[ $# > 3 ]] && die "Woah too many params, don't use spaces in names and use help if you're lost"
+[[ $# > 2 ]] && die "Woah too many params, don't use spaces in names and use help if you're lost"
 
 # if one param they want to rename _master, shift desired name and input _master
 if [[ $# == 2 ]]; then 

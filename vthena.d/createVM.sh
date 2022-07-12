@@ -1,10 +1,11 @@
 #!/bin/bash
+# Creates a vm with provided iso file
 set -eo pipefail 
 trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 #fetch defaults
 [[ -f $script_dir/.env ]] && source $script_dir/.env
-# Creates a vm with provided iso file
+
 ##FUNCTIONS
 # very cheap error logging
 die() { 
@@ -23,20 +24,22 @@ needs_arg() {
 cleanup() {
   # don't let them quit the quit cleaner
   trap - SIGINT SIGTERM ERR EXIT
-  rm -rf $VTHENA_DIR/old_master/
+
+  # the safe move is bringing the old master vm back and deleting the new one
+  [[ -d $VTHENA_DIR/old_master ]] && \
+    rm -rf $VTHENA_DIR/_master/ && \
+    mv $VTHENA_DIR/old_master $VTHENA_DIR/_master
+  
   exit 
 }
 
 # prints a help message
 help() {
   echo "
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-f] -p param_value arg1 [arg2...]
-Script description here.
+Usage: vthena create [-h] isoFile 
+Creates _master VM with the given ISO file and starts it for you to config. 
 Available options:
--h, --help      Print this help and exit
--v, --verbose   Print script debug info
--f, --flag      Some flag description
--p, --param     Some param description"
+-h, --help      Print this help and exit"
   exit 1
 }
 
@@ -131,6 +134,7 @@ main() {
   #Good Job!
   return 0
 }
+
 # first parse your options
 while getopts h-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
