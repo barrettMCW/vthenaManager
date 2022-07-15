@@ -126,9 +126,9 @@ handleDisplayType(){
   [[ -z $VM_PORT ]] && VM_PORT=$(getPort)
 
   # wrap a userprovided password
-  [[ -n $VM_PASS ]] && VM_SECURITY=password=$VM_PASS
+  [[ -n $VM_PASS ]] && VM_SECURITY="password=$VM_PASS"
   # disable security if no password is defined
-  [[ -z $VM_SECURITY ]] && VM_SECURITY=disable-ticketing
+  [[ -z $VM_SECURITY ]] && VM_SECURITY="disable-ticketing=on"
 
   # localhost will do the trick for most
   [[ -z $VM_ADDR ]] && VM_ADDR=127.0.0.1
@@ -151,7 +151,7 @@ wrapQemuArgs() {
   [[ -n $VM_SMP_TOP ]] && VM_SMP="-smp $VM_SMP_TOP"
 
   # wrap a userprovided memory cap
-  [[ -n $VM_MEM_CAP ]] && VM_MEM="-mem $VM_MEM_CAP"
+  [[ -n $VM_MEM_CAP ]] && VM_MEM="-m $VM_MEM_CAP"
 
   # offload display for neatness
   VM_DISPLAY=$(handleDisplayType)
@@ -180,10 +180,10 @@ main() {
   touch $VTHENA_DIR/$VM_NAME/.init
   
   # Start vm with specs#
-  echo "qemu-system-X86_64 -enable-kvm -name $VM_NAME \
+  qemu-system-x86_64 -enable-kvm -name $VM_NAME \
   -cpu $VM_CPU \
   $VM_SMP $VM_MEM $VM_DISPLAY $VM_VIDEO $VM_OS \
-  $VM_DISKS $VM_NET $VM_USB $VM_XTRA"
+  $VM_DISKS $VM_NET $VM_USB $VM_XTRA
 
   # Good Job!
   cleanup

@@ -13,7 +13,7 @@ die() {
 
 # use qemu-img to find disk format, then return the val
 main() { 
-  qemu-img info $1 | awk -v key=$KEY '/key/{print $NF}' 
+  qemu-img info $1 | awk -v infoKey="$KEY" '/infoKey/{print $NF}' 
 }
 
 ##MAIN

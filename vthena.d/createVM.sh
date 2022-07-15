@@ -129,7 +129,7 @@ main() {
   askForDisks
 
   # well here goes nothing
-  $script_dir/startVM.sh -r $1 _master
+  $script_dir/startVM.sh -m 2G -r $1 _master
 
   #Good Job!
   return 0
