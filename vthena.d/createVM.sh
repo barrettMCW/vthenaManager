@@ -147,6 +147,8 @@ main() {
     echo
     [[ $REPLY =~ [A-Za-z0-9]* ]] && $script_dir/genVMKey.sh _master $REPLY
   done 
+  
+  rm -rf $VTHENA_DIR/old_master
 
   #Good Job!
   return 0
