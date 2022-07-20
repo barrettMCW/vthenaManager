@@ -123,13 +123,30 @@ askForDisks() {
 ##MAIN
 main() {
   # workdir
-  mkdir $VTHENA_DIR/_master/ $VTHENA_DIR/_master/experiments
+  mkdir $VTHENA_DIR/_master $VTHENA_DIR/_master/experiments
 
   # ask for disk config
   askForDisks
 
   # well here goes nothing
   $script_dir/startVM.sh -m 2G -r $1 _master
+
+  # ask if they want to record their root password
+  read -p "Save root password? Y/N" -n 1 -r
+  echo
+  [[ $REPLY =~ ^[Yy]$ ]] && $script_dir/genVMKey.sh _master root 
+
+  # ask if they have more users to add
+  while true; do
+    read -p "Add more user passwords?" -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]] || break #if n exit loop
+    # what is the username?
+    echo "What's the username?"
+    read
+    echo
+    [[ $REPLY =~ [A-Za-z0-9]* ]] && $script_dir/genVMKey.sh _master $REPLY
+  done 
 
   #Good Job!
   return 0

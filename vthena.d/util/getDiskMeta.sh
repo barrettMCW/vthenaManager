@@ -13,7 +13,7 @@ die() {
 
 # use qemu-img to find disk format, then return the val
 main() { 
-  qemu-img info $1 | awk -v infoKey="$KEY" '/infoKey/{print $NF}' 
+  qemu-img info $1 | awk -F ': ' -v infoKey="$KEY" '{if ($1 == infoKey){ print $NF}}'
 }
 
 ##MAIN
@@ -24,13 +24,13 @@ main() {
 # shouldn't be used by people, so we can be pretty explicit in parsing
 case $1 in
   # store command as a qemu-img key
-  format | fmt )            KEY="file format:" ;;
-  image | img )             KEY="image:" ;;
-  capacity | cap | vsize )  KEY="virtual size:" ;;
-  size | usage | dsize )    KEY="disk size:" ;;
-  cluster | csize )         KEY="cluster_size:" ;;
+  format | fmt )            KEY="file format" ;;
+  image | img )             KEY="image" ;;
+  capacity | cap | vsize )  KEY="virtual size" ;;
+  size | usage | dsize )    KEY="disk size" ;;
+  cluster | csize )         KEY="cluster_size" ;;
   # qcow2
-  compression | comp )      KEY="compression type:" ;;
+  compression | comp )      KEY="compression type" ;;
   corrupt | corr )          KEY="false" ;;
   l2 | extended )           KEY="extended" ;;
   # else unknown val

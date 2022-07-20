@@ -17,7 +17,7 @@ main() {
   # get list of vms
   local createdVMs=$($script_dir/listVMs.sh)
   # check each val and return the match
-  local val #define return variable
+  local val
   for vm in $createdVMs; do 
     [[ $vm == $1 ]] && val=$1 && break
   done

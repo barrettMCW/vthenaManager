@@ -77,13 +77,14 @@ for param in $@; do
     # if it starts with a hyphen it's an option, ignore it
     -* ) continue ;;
     # otherwise if it's a known command, run the appropriate script
-    start ) $script_dir/vthena.d/startVM.sh $(removeCommand $param $@) && exit ;;
-    create | new ) $script_dir/vthena.d/createVM.sh $(removeCommand $param $@) && exit ;;
-    rename | name ) $script_dir/vthena.d/setMasterImg.sh $(removeCommand $param $@) && exit ;;
-    clone ) $script_dir/vthena.d/cloneVM.sh $(removeCommand $param $@) && exit ;;
-    remove | rm) $script_dir/vthena.d/removeVM.sh $(removeCommand $param $@) && exit ;;
-    list | ls) $script_dir/vthena.d/util/listVMs.sh && exit ;;
-    run | test ) $script_dir/vthena.d/runExperiment.sh $(removeCommand $param $@) && exit ;;
+    start )              $script_dir/vthena.d/startVM.sh $(removeCommand $param $@) && exit ;;
+    create | new )       $script_dir/vthena.d/createVM.sh $(removeCommand $param $@) && exit ;;
+    rename | name )      $script_dir/vthena.d/setMasterImg.sh $(removeCommand $param $@) && exit ;;
+    clone )              $script_dir/vthena.d/cloneVM.sh $(removeCommand $param $@) && exit ;;
+    remove | rm)         $script_dir/vthena.d/removeVM.sh $(removeCommand $param $@) && exit ;;
+    list | ls)           $script_dir/vthena.d/util/listVMs.sh && exit ;;
+    run | test )         $script_dir/vthena.d/runExperiment.sh $(removeCommand $param $@) && exit ;;
+    key | keygen )       $script_dir/vthena.d/genVMKey.sh $(removeCommand $param $@) && exit ;;
     help ) help ;;
     # else print help message
     ? ) help ;;

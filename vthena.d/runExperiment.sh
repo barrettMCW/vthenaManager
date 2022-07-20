@@ -23,7 +23,7 @@ needs_arg() {
 cleanup() {
   # don't let them quit the quit cleaner
   trap - SIGINT SIGTERM ERR EXIT
-
+  rm -r $env
   exit 
 }
 
@@ -47,15 +47,18 @@ parseOutput(){
 
 ##MAIN
 main() {
+  # workdir
+  env=/tmp/$1
+  mkdir $env
+
   # make a pipe
-  VM_IN=/tmp/$SCRIPT_USER.in 
-  VM_OUT=/tmp/$SCRIPT_USER.out
+  VM_IN=$env/$SCRIPT_USER.in 
+  VM_OUT=$env/$SCRIPT_USER.out
   mkfifo $VM_IN $VM_OUT
 
   # start the vm
-  $script_dir/startVM.sh -x "-serial pipe:/tmp/guest" -d none  
-  ###MICHAEL, NO ONE SHOULD SEE THIS
-  VERBOSE=testing
+  $script_dir/startVM.sh -x "-serial pipe:$env/$SCRIPT_USER" -d nographic $1 &
+  
   # Watch the vm until it dies
   while read line; do
     [[ -n $VERBOSE ]] && echo "${line}"
@@ -65,6 +68,7 @@ main() {
   # Good Job!
   return 0
 }
+
 # first parse your options
 while getopts h-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -82,16 +86,16 @@ done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 # check input vals 
-[[ $# < 3 ]] && die "Needs vm to run on and script to run"
-[[ $# > 3 ]] && die "Woah. Too many args"
+[[ $# < 2 ]] && die "Needs vm to run on and script to run"
+[[ $# > 2 ]] && die "Woah. Too many args"
 
 # if first arg isn't a vm, die
 [[ $1 != $($script_dir/util/searchVM.sh $1) ]] && die "VM not found"
 
 # if second arg isn't an executable, check global experiments, if still can't find, die
-[[ ! -x $2 ]] && \
-  experiment=$(find $script_dir/experiments -name "$2.*" -executable -print -quit) || \
-  experiment=$2
+[[ -x $2 ]] && experiment=$2 || \
+  experiment=$(find $script_dir/experiments -name "$2.*" -executable -print -quit)
+  
 [[ ! -x $experiment ]] && die "Experiment not found"
 
 # default user is root

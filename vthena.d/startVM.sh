@@ -85,12 +85,11 @@ formatDiskString() {
   local i=1
   local qemuString=()
   for str in $@; do
-    # get file format
     local format=$($script_dir/util/getDiskMeta.sh format $str)
     local diskInd=$((i-1))
     # qemu complains when raw files aren't specified
-    [[ $format == raw ]] && qemuString[$i]="-drive file=$str,index=$diskInd,media=disk,if=virtio,format=raw" || \
-    qemuString[$i]="-drive file=$str,index=$diskInd,media=disk,if=virtio"
+    qemuString[$i]="-drive file=$str,index=$diskInd,media=disk,if=virtio,format=$format" 
+    [[ $i == 1 ]] && qemuString[1]="-hda $str"
     ((i++))
   done
   echo ${qemuString[@]}
@@ -218,6 +217,9 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 # use name if provided
 [[ -n $1 ]] && VM_NAME=$1
+
+# _master is default
+[[ -z $VM_NAME ]] && VM_NAME=_master
 
 # wraps user given args into qemu command args
 wrapQemuArgs
