@@ -43,6 +43,8 @@ Available options:
 # This checks the VM_OUT for important information, then will send it to a handler if necessary.
 parseOutput(){
   echo $1
+  [[ $1 == "Booting" ]] && sleep 5 && printf "\n\n" > $VM_IN
+  [[ $1 == "login: " ]] && echo "root\n" > $VM_IN
 }
 
 ##MAIN
@@ -57,7 +59,7 @@ main() {
   mkfifo $VM_IN $VM_OUT
 
   # start the vm
-  $script_dir/startVM.sh -x "-serial pipe:$env/$SCRIPT_USER" -d nographic $1 &
+  $script_dir/watchVM.exp `$script_dir/startVM.sh -m 6g -x "-serial pipe:$env/$SCRIPT_USER" $RUN_ARGS $1`
   
   # Watch the vm until it dies
   while read line; do
@@ -78,13 +80,14 @@ while getopts h-: OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi 
   case "$OPT" in
-    h | help )     help ;;
-    ??* )          die "Illegal option --$OPT" ;;  # bad long option
-    ? )            exit 2 ;;  # bad short option (error reported via getopts)
+    p | passthrough ) RUN_ARGS=$OPT ;; 
+    h | help )        help ;;
+    ??* )             die "Illegal option --$OPT" ;;  # bad long option
+    ? )               exit 2 ;;  # bad short option (error reported via getopts)
   esac
 done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
-
+echo $@
 # check input vals 
 [[ $# < 2 ]] && die "Needs vm to run on and script to run"
 [[ $# > 2 ]] && die "Woah. Too many args"

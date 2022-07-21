@@ -118,7 +118,7 @@ handleDisplayType(){
 
   # nographic option
   [[ $VM_DISPLAY_TYPE =~ ^nographic$ ]] && \
-    echo "-nographic"
+    echo "-nographic" && return 0
 
   # SPICE AND VNC
   # find a port if they didn't give us one
@@ -178,18 +178,18 @@ main() {
   # marks that we started this vm
   touch $VTHENA_DIR/$VM_NAME/.init
   
-  # Start vm with specs#
-  qemu-system-x86_64 -enable-kvm -name $VM_NAME \
-  -cpu $VM_CPU \
-  $VM_SMP $VM_MEM $VM_DISPLAY $VM_VIDEO $VM_OS \
-  $VM_DISKS $VM_NET $VM_USB $VM_XTRA
+  # Start vm with specs, echo if fakerun
+  local "qemu=qemu-system-x86_64 -enable-kvm -name $VM_NAME \
+    -cpu $VM_CPU $VM_SMP $VM_MEM $VM_DISPLAY $VM_VIDEO $VM_OS $VM_DISKS $VM_NET $VM_USB $VM_XTRA "
+  [[ $FAKE_RUN ]] && echo $qemu || \
+    $qemu
 
   # Good Job!
   cleanup
 }
 
 # parse your options
-while getopts a:c:d:e:m:p:r:s:v:w:x:h-: OPT; do
+while getopts a:c:d:e:fm:p:r:s:v:w:x:h-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -201,6 +201,7 @@ while getopts a:c:d:e:m:p:r:s:v:w:x:h-: OPT; do
     c | cpu )      needs_arg && VM_CPU=$OPTARG ;;
     d | display )  needs_arg && VM_DISPLAY_TYPE=$OPTARG ;;
     e | external ) needs_arg && VM_DISKS_EXTERNAL=$OPTARG ;;
+    f | fake )     FAKE_RUN=true ;; 
     m | memory )   needs_arg && VM_MEM_CAP=$OPTARG ;;
     p | port )     validatePort && VM_PORT=$OPTARG ;;
     r | cdrom )    needs_arg && VM_CDROM=$OPTARG ;;
