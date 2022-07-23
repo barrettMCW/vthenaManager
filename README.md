@@ -1,5 +1,5 @@
 Requires:  
-    kvm kernel  
+    kvm kernel
     qemu  
     likely installed:
     awk
