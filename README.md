@@ -1,3 +1,5 @@
+## migrating to kubernetes and will not be using or maintaining this anymore. 
+
 Requires:  
     kvm kernel
     qemu  
